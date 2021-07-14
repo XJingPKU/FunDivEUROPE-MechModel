@@ -1,0 +1,282 @@
+---
+title: "Mechanistic model SEM interactions"
+author: "Xin Jing"
+date: "11/30/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# load library
+library(tidyverse)
+library(lavaan)
+
+# load data
+semdata <- readRDS("./data/fundiv_resdata_20200706.rds")
+
+# clean data
+# row ids in dry sites
+idd <- c(which(grepl("SPA", semdata$PlotID)),
+         which(grepl("ITA", semdata$PlotID)))
+# generate interactions
+semdata <- semdata %>% 
+  mutate(light.int = LAI * HLI,
+         water.int = RBdeep * water,
+         nut.int = RBdeep * STN,
+         nut.int2 = RBdeep * SCN,
+         LAI.RB.SCN.int = LAI/RBdeep * SCN) %>% 
+  mutate(light.int = scale(light.int),
+         water.int = scale(water.int),
+         nut.int = scale(nut.int),
+         nut.int2 = scale(nut.int2),
+         LAI.RB.SCN.int = scale(LAI.RB.SCN.int))
+
+```
+
+# Productivity models
+
+1. Productivity + soil CN ratio  
+1.1. All sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+# model formulas
+prodDeepLN <- '
+lnAWP ~ lnBA + SR + LAI + HLI + light.int + RBdeep + water + water.int + SCN + nut.int2
+LAI ~ SR + lnBA
+RBdeep ~ SR + lnBA
+'
+fit1.1 <- sem(prodDeepLN, data = semdata)
+# summary(fit1.1, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit1.1, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit1.1, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+1.2. Dry sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+fit1.2 <- update(fit1.1, data = semdata[idd, ])
+# summary(fit1.2, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit1.2, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit1.2, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+1.3. Non-dry sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+fit1.3 <- update(fit1.1, data = semdata[-idd, ])
+# summary(fit1.3, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit1.3, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit1.3, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+\newpage
+# Stability models
+
+2. Stability + soil CN ratio  
+2.1. All sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+# model formulas
+prodDeepLN <- '
+lnstab ~ lnBA + SR + LAI + HLI + light.int + RBdeep + water + water.int + SCN + nut.int2
+LAI ~ SR + lnBA
+RBdeep ~ SR + lnBA
+'
+fit2.1 <- sem(prodDeepLN, data = semdata)
+# summary(fit2.1, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit2.1, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit2.1, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+2.2. Dry sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+fit2.2 <- update(fit2.1, data = semdata[idd, ])
+# summary(fit2.2, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit2.2, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit2.2, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+2.3. Non-dry sites
+```{r, eval=TRUE, echo=TRUE, fig.height=4.5}
+fit2.3 <- update(fit2.1, data = semdata[-idd, ])
+# summary(fit2.3, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit2.3, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit2.3, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+\newpage
+# Productivity + Stability models
+
+3. Productivity + Stability + soil CN ratio  
+3.1. All sites
+```{r, echo=TRUE, fig.height=4.5}
+# model formulas
+prodDeepLN <- '
+lnAWP ~ lnBA + SR + LAI + HLI + light.int + RBdeep + water + water.int + SCN + nut.int2
+lnstab ~ lnBA + SR + LAI + HLI + light.int + RBdeep + water + water.int + SCN + nut.int2
+LAI ~ SR + lnBA
+RBdeep ~ SR + lnBA
+lnAWP ~~ lnstab
+'
+fit3.1 <- sem(prodDeepLN, data = semdata)
+summary(fit3.1, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit3.1, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit3.1, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+3.2. Dry sites
+```{r, echo=TRUE, fig.height=4.5}
+fit3.2 <- update(fit3.1, data = semdata[idd, ])
+summary(fit3.2, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit3.2, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit3.2, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+3.3. Non-dry sites
+```{r, echo=TRUE, fig.height=4.5}
+fit3.3 <- update(fit3.1, data = semdata[-idd, ])
+summary(fit3.3, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit3.3, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit3.3, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  nodeLabels = c("AWP", "Stab", "LAI", "Root \nbiomass",
+                                 "Basal \narea", "SR", "HLI",
+                                 "LAI\n:HLI", "Root\n:Water", "Water",
+                                 "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+\newpage
+# Side analysis
+# 4. Considering LAI/fine root biomass (proxy for above:belowground biomass) x C:N ratio as interaction effect 
+
+4.1. Productivity + LAI/RB ratio 
+```{r, echo=TRUE, fig.height=4.5}
+# model formulas
+prodDeepLN <- '
+lnAWP ~ lnBA + SR + LAI.RB.SCN.int
+'
+fit4.1 <- sem(prodDeepLN, data = semdata)
+summary(fit4.1, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit4.1, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit4.1, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  # nodeLabels = c("AWP", "Stab", "LAI", "Root \nbiomass",
+                  #                "Basal \narea", "SR", "HLI",
+                  #                "LAI\n:HLI", "Root\n:Water", "Water",
+                  #                "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
+
+4.2. Stability + LAI/RB ratio 
+```{r, echo=TRUE, fig.height=4.5}
+# model formulas
+stabDeepLN <- '
+lnstab ~ lnBA + SR + LAI.RB.SCN.int
+'
+fit4.1 <- sem(stabDeepLN, data = semdata)
+summary(fit4.1, standardized = T, rsq = T, fit.measures = F)
+fitMeasures(fit4.1, c("chisq", "df", "pvalue", "cfi", "rmsea", "srmr"))
+semPlot::semPaths(fit4.1, "std",
+                  layout = "tree",
+                  title = FALSE, curvePivot = TRUE,
+                  intercepts = FALSE, residuals = FALSE, thresholds = 0.05,
+                   edge.label.cex = 1.2,
+                  posCol = c("blue", "red"),
+                  # nodeLabels = c("AWP", "Stab", "LAI", "Root \nbiomass",
+                  #                "Basal \narea", "SR", "HLI",
+                  #                "LAI\n:HLI", "Root\n:Water", "Water",
+                  #                "SCN", "Root\n:SCN"),
+                  sizeMan = 10)
+```
